@@ -66,14 +66,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Contenido principal */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto pb-nav md:pb-0">
+  {children}
+</div>
 
         {/* Bottom nav — solo mobile */}
-        <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-200 safe-bottom z-50">
-          <div className="flex">
-            {NAV.map(({ href, label, Icon }) => {
+        <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-200 z-50">
+  <div className="flex safe-bottom">
+    {NAV.map(({ href, label, Icon }) => {
               const active = pathname === href
               return (
                 <Link

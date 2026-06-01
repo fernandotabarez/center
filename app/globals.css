@@ -3,25 +3,30 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --bg: #f9fafb;
-    --surface: #ffffff;
-    --border: #e5e7eb;
-    --text: #111827;
-    --muted: #6b7280;
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
-  .dark {
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --border: #334155;
-    --text: #f1f5f9;
-    --muted: #94a3b8;
+
+  /* Safari hace zoom cuando un input tiene font-size menor a 16px. Forzar 16px en mobile. */
+  @media (max-width: 768px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
   }
+
   * { -webkit-tap-highlight-color: transparent; }
   html { scroll-behavior: smooth; }
+
+  body {
+    overscroll-behavior-y: contain;
+  }
 }
 
 @layer utilities {
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
   .safe-top { padding-top: env(safe-area-inset-top, 0px); }
+
+  /* Para que el contenido scrollable no quede tapado por la bottom nav */
+  .pb-nav { padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); }
 }

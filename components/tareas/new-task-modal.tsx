@@ -29,8 +29,8 @@ export default function NewTaskModal({ autoOpen = false }: { autoOpen?: boolean 
       </button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-end md:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/30 z-[60] flex items-end md:items-center justify-center p-0 md:p-4">
+  <div className="bg-white rounded-t-2xl md:rounded-2xl p-5 w-full max-w-sm max-h-[85vh] overflow-y-auto safe-bottom">
             <div className="flex items-center justify-between mb-4">
               <p className="font-medium text-gray-900">Nueva tarea</p>
               <button onClick={() => setOpen(false)}><X className="w-4 h-4 text-gray-400" /></button>
