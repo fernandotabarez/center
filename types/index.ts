@@ -74,3 +74,43 @@ export interface DashboardStats {
   urgent_tasks: number
   upcoming_payments: Payment[]
 }
+
+export type GoalHorizon = 'short_term' | 'mid_term' | 'long_term'
+export type GoalType = 'numeric' | 'milestone'
+export type GoalCategory = 'personal' | 'salud' | 'finanzas' | 'carrera' | 'educacion' | 'otro'
+
+export interface Goal {
+  id: string
+  user_id: string
+  title: string
+  description: string | null
+  horizon: GoalHorizon
+  goal_type: GoalType
+  category: GoalCategory
+  icon: string
+  target_value: number | null
+  current_value: number
+  unit: string | null
+  due_date: string | null
+  completed: boolean
+  completed_at: string | null
+  archived: boolean
+  created_at: string
+}
+
+export interface WeeklyObjective {
+  id: string
+  user_id: string
+  week_start: string
+  title: string
+  goal_id: string | null
+  completed: boolean
+  completed_at: string | null
+  order_index: number
+  contributes_amount: number | null
+  created_at: string
+}
+
+export interface WeeklyObjectiveWithGoal extends WeeklyObjective {
+  goal: Goal | null
+}

@@ -11,16 +11,18 @@ import PaymentList from '@/components/dashboard/payment-list'
 import { Bell, Plus } from 'lucide-react'
 import Link from 'next/link'
 import AddQuickModal from '@/components/dashboard/add-quick-modal'
+import { getCurrentWeekObjectives } from '@/lib/actions/goals'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [habits, tasks, payments] = await Promise.all([
-    getHabitsWithStats(),
-    getTasks(),
-    getUpcomingPayments(30),
-  ])
+  const [habits, tasks, payments, weeklyObjs] = await Promise.all([
+  getHabitsWithStats(),
+  getTasks(),
+  getUpcomingPayments(30),
+  getCurrentWeekObjectives(),
+])
 
   const today = format(new Date(), 'yyyy-MM-dd')
  const todayHabits = habits.filter(h => {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Repeat, Columns, Receipt, BarChart2, Settings, LogOut } from 'lucide-react'
+import { Home, Repeat, Columns, Receipt, BarChart2, Settings, LogOut, Target  } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ const NAV = [
   { href: '/habitos',      label: 'hábitos',  Icon: Repeat },
   { href: '/tareas',       label: 'tareas',   Icon: Columns },
   { href: '/pagos',        label: 'pagos',    Icon: Receipt },
+  { href: '/objetivos',    label: 'objetivos', Icon: Target },
   { href: '/estadisticas', label: 'stats',    Icon: BarChart2 },
 ]
 
