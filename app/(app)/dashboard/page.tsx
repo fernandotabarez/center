@@ -23,11 +23,13 @@ export default async function DashboardPage() {
   ])
 
   const today = format(new Date(), 'yyyy-MM-dd')
-  const todayHabits = habits.filter(h => {
-    if (h.frequency === 'daily') return true
-    if (h.frequency === 'weekly') return h.days_of_week.includes(new Date().getDay())
-    return false
-  })
+ const todayHabits = habits.filter(h => {
+  if (h.frequency === 'daily') return true
+  if (h.frequency === 'weekly') return h.days_of_week.includes(new Date().getDay())
+  // weekly_flex: aparece mientras no se haya alcanzado la meta semanal
+  if (h.frequency === 'weekly_flex') return h.week_progress.done < h.week_progress.target
+  return false
+})
   const doneToday = todayHabits.filter(h => h.done_today).length
   const streak = Math.max(...habits.map(h => h.streak), 0)
   const consistency = habits.length

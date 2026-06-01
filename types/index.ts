@@ -4,11 +4,19 @@ export interface Habit {
   name: string
   icon: string
   color: string
-  frequency: 'daily' | 'weekly' | 'monthly'
+  frequency: 'daily' | 'weekly' | 'weekly_flex' | 'monthly'
   days_of_week: number[]
+  times_per_week: number
   notif_time: string | null
   archived: boolean
   created_at: string
+}
+
+export interface HabitWithStreak extends Habit {
+  streak: number
+  done_today: boolean
+  consistency_30d: number
+  week_progress: { done: number; target: number }
 }
 
 export interface HabitLog {
@@ -17,12 +25,6 @@ export interface HabitLog {
   user_id: string
   date: string
   done: boolean
-}
-
-export interface HabitWithStreak extends Habit {
-  streak: number
-  done_today: boolean
-  consistency_30d: number
 }
 
 export interface Task {

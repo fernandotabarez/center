@@ -6,7 +6,12 @@ import { HabitWithStreak } from '@/types'
 import { Check, Flame, Archive, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const FREQ_LABEL: Record<string, string> = { daily: 'diario', weekly: 'semanal', monthly: 'mensual' }
+const FREQ_LABEL: Record<string, string> = {
+  daily: 'diario',
+  weekly: 'semanal',
+  weekly_flex: 'flexible',
+  monthly: 'mensual',
+}
 
 export default function HabitCard({ habit }: { habit: HabitWithStreak }) {
   const [done, setDone] = useState(habit.done_today)
@@ -46,13 +51,21 @@ export default function HabitCard({ habit }: { habit: HabitWithStreak }) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className={cn('text-sm font-medium', done ? 'line-through text-gray-400' : 'text-gray-900')}>{habit.name}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-gray-400">{FREQ_LABEL[habit.frequency]}</span>
-          <span className="text-xs text-gray-300">·</span>
-          <span className="text-xs text-teal-600">{pct}% consistencia</span>
-        </div>
-      </div>
+  <p className={cn('text-sm font-medium', done ? 'line-through text-gray-400' : 'text-gray-900')}>{habit.name}</p>
+  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+    <span className="text-xs text-gray-400">{FREQ_LABEL[habit.frequency]}</span>
+    {habit.frequency === 'weekly_flex' && (
+      <>
+        <span className="text-xs text-gray-300">·</span>
+        <span className="text-xs text-purple-600 font-medium">
+          {habit.week_progress.done}/{habit.week_progress.target} esta sem
+        </span>
+      </>
+    )}
+    <span className="text-xs text-gray-300">·</span>
+    <span className="text-xs text-teal-600">{pct}%</span>
+  </div>
+</div>
 
       {/* Racha */}
       {habit.streak > 0 && (

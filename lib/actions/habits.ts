@@ -13,6 +13,14 @@ export async function getHabitsWithStats(): Promise<HabitWithStreak[]> {
   const today = format(new Date(), 'yyyy-MM-dd')
   const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), 'yyyy-MM-dd')
 
+  // Inicio de la semana actual (lunes)
+  const now = new Date()
+  const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1 // 0=lunes, 6=domingo
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - dayOfWeek)
+  weekStart.setHours(0, 0, 0, 0)
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+
   const { data: habits } = await supabase
     .from('habits')
     .select('*')
@@ -33,7 +41,7 @@ export async function getHabitsWithStats(): Promise<HabitWithStreak[]> {
     const todayLog = habitLogs.find(l => l.date === today)
     const done_today = todayLog?.done ?? false
 
-    // Calcular racha
+    // Racha: días consecutivos hacia atrás (solo aplica para daily; para otras frecuencias calcula igual pero menos significativo)
     let streak = 0
     const checkDate = new Date()
     while (true) {
@@ -44,14 +52,32 @@ export async function getHabitsWithStats(): Promise<HabitWithStreak[]> {
       checkDate.setDate(checkDate.getDate() - 1)
     }
 
+    // Progreso semana actual (relevante para weekly_flex)
+    const weekDoneCount = habitLogs.filter(l => l.done && l.date >= weekStartStr).length
+    const weekTarget = habit.frequency === 'weekly_flex'
+      ? habit.times_per_week
+      : habit.frequency === 'weekly'
+      ? habit.days_of_week.length
+      : habit.frequency === 'daily'
+      ? 7
+      : 1
+
     // Consistencia 30d
-    const expectedDays = habit.frequency === 'daily' ? 30
+    const expectedDays =
+      habit.frequency === 'daily' ? 30
       : habit.frequency === 'weekly' ? Math.floor(30 / 7) * habit.days_of_week.length
+      : habit.frequency === 'weekly_flex' ? Math.floor(30 / 7) * habit.times_per_week
       : 1
     const doneLogs = habitLogs.filter(l => l.done).length
     const consistency_30d = expectedDays > 0 ? Math.round((doneLogs / expectedDays) * 100) : 0
 
-    return { ...habit, streak, done_today, consistency_30d }
+    return {
+      ...habit,
+      streak,
+      done_today,
+      consistency_30d,
+      week_progress: { done: weekDoneCount, target: weekTarget },
+    }
   })
 }
 
