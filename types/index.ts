@@ -9,6 +9,8 @@ export interface Habit {
   times_per_week: number
   notif_time: string | null
   archived: boolean
+  linked_goal_id: string | null
+  contributes_amount: number
   created_at: string
 }
 

@@ -88,13 +88,55 @@ export async function toggleHabitToday(habitId: string, done: boolean) {
 
   const today = format(new Date(), 'yyyy-MM-dd')
 
+  // Estado previo del log (para saber si es cambio o no)
+  const { data: previousLog } = await supabase
+    .from('habit_logs')
+    .select('done')
+    .eq('habit_id', habitId)
+    .eq('date', today)
+    .maybeSingle()
+
+  const wasDone = previousLog?.done ?? false
+
+  // Upsert del log
   await supabase.from('habit_logs').upsert(
     { habit_id: habitId, user_id: user.id, date: today, done },
     { onConflict: 'habit_id,date' }
   )
 
+  // Si el estado cambió, actualizar la meta vinculada (si existe)
+  if (wasDone !== done) {
+    const { data: habit } = await supabase
+      .from('habits')
+      .select('linked_goal_id, contributes_amount')
+      .eq('id', habitId)
+      .single()
+
+    if (habit?.linked_goal_id) {
+      const delta = done ? (habit.contributes_amount ?? 1) : -(habit.contributes_amount ?? 1)
+      const { data: goal } = await supabase
+        .from('goals')
+        .select('current_value, target_value, goal_type')
+        .eq('id', habit.linked_goal_id)
+        .single()
+
+      if (goal?.goal_type === 'numeric') {
+        const newValue = Math.max(0, (goal.current_value ?? 0) + delta)
+        const updates: { current_value: number; completed?: boolean; completed_at?: string | null } = {
+          current_value: newValue,
+        }
+        if (goal.target_value && newValue >= goal.target_value) {
+          updates.completed = true
+          updates.completed_at = new Date().toISOString()
+        }
+        await supabase.from('goals').update(updates).eq('id', habit.linked_goal_id)
+      }
+    }
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/habitos')
+  revalidatePath('/objetivos')
 }
 
 export async function createHabit(data: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'archived'>) {
