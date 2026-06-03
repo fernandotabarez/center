@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createHabit } from '@/lib/actions/habits'
 import { getActiveGoals } from '@/lib/actions/goals'
 import { Goal } from '@/types'
@@ -12,6 +13,7 @@ const DAYS = ['L','M','X','J','V','S','D']
 type Frequency = 'daily' | 'weekly' | 'weekly_flex' | 'monthly'
 
 export default function NewHabitModal({ autoOpen = false }: { autoOpen?: boolean }) {
+  const router = useRouter()
   const [open, setOpen] = useState(autoOpen)
   const [loading, setLoading] = useState(false)
   const [activeGoals, setActiveGoals] = useState<Goal[]>([])
@@ -35,6 +37,7 @@ export default function NewHabitModal({ autoOpen = false }: { autoOpen?: boolean
     e.preventDefault()
     setLoading(true)
     await createHabit(form)
+    router.refresh()
     setOpen(false)
     setLoading(false)
     setForm({

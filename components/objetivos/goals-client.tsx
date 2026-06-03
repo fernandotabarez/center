@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Goal, WeeklyObjectiveWithGoal } from '@/types'
 import { toggleWeeklyObjective, toggleGoalCompleted, archiveGoal, updateGoalProgress } from '@/lib/actions/goals'
 import { Plus, Target, Calendar, Check, Archive, MoreHorizontal, TrendingUp } from 'lucide-react'
@@ -36,12 +37,17 @@ export default function GoalsClient({
   autoOpenPlan?: boolean
   autoOpenNew?: boolean
 }) {
-  const [goals] = useState(initialGoals)
+  const router = useRouter()
+  const [goals, setGoals] = useState(initialGoals)
   const [weekly, setWeekly] = useState(initialWeekly)
   const [tab, setTab] = useState<'semana' | 'metas'>('semana')
   const [showWizard, setShowWizard] = useState(autoOpenPlan ?? false)
   const [showNewGoal, setShowNewGoal] = useState(autoOpenNew ?? false)
   const [pending, startTransition] = useTransition()
+
+  // Sincroniza datos frescos del server (tras router.refresh) en el estado local
+  useEffect(() => { setGoals(initialGoals) }, [initialGoals])
+  useEffect(() => { setWeekly(initialWeekly) }, [initialWeekly])
 
   const activeGoals = goals.filter(g => !g.completed)
   const completedGoals = goals.filter(g => g.completed)
@@ -205,10 +211,10 @@ export default function GoalsClient({
         <WeeklyPlanWizard
           existingObjectives={weekly}
           activeGoals={activeGoals}
-          onClose={() => setShowWizard(false)}
+          onClose={() => { setShowWizard(false); router.refresh() }}
         />
       )}
-      {showNewGoal && <NewGoalModal onClose={() => setShowNewGoal(false)} />}
+      {showNewGoal && <NewGoalModal onClose={() => { setShowNewGoal(false); router.refresh() }} />}
     </div>
   )
 }

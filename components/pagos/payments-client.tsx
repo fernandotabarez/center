@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Payment } from '@/types'
 import { markPaymentPaid, createPayment, deletePayment } from '@/lib/actions/payments'
 import { formatCurrency, formatDate, getDueSeverity } from '@/lib/utils'
@@ -21,11 +22,15 @@ function getIcon(name: string) {
 const emptyForm = { name:'', amount:'', currency:'UYU' as Payment['currency'], due_date:'', recurrence:'monthly' as Payment['recurrence'], notif_days_before:3, icon:'📋' }
 
 export default function PaymentsClient({ initialPayments, autoOpen }: { initialPayments: Payment[], autoOpen?: boolean }) {
+  const router = useRouter()
   const [payments, setPayments] = useState(initialPayments)
   const [showModal, setShowModal] = useState(autoOpen ?? false)
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(false)
   const [pending, startTransition] = useTransition()
+
+  // Sincroniza datos frescos del server (tras router.refresh) en el estado local
+  useEffect(() => { setPayments(initialPayments) }, [initialPayments])
 
   function pay(p: Payment) {
     setPayments(prev => prev.map(x => x.id === p.id ? { ...x, paid: true } : x))
@@ -41,6 +46,7 @@ export default function PaymentsClient({ initialPayments, autoOpen }: { initialP
     e.preventDefault()
     setLoading(true)
     await createPayment({ ...form, amount: Number(form.amount), icon: getIcon(form.name) })
+    router.refresh()
     setShowModal(false)
     setForm(emptyForm)
     setLoading(false)

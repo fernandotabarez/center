@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { Task } from '@/types'
 import { updateTaskStatus, deleteTask } from '@/lib/actions/tasks'
 import { formatDate, CATEGORY_COLORS, getDueSeverity } from '@/lib/utils'
@@ -33,6 +33,9 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Record<str
   const [tasks, setTasks] = useState(initialTasks)
   const [activeTab, setActiveTab] = useState<Task['status']>('today')
   const [pending, startTransition] = useTransition()
+
+  // Sincroniza datos frescos del server (tras router.refresh) en el estado local
+  useEffect(() => { setTasks(initialTasks) }, [initialTasks])
 
   function moveTask(task: Task, newStatus: Task['status']) {
     setTasks(prev => {

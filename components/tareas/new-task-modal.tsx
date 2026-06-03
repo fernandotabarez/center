@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createTask } from '@/lib/actions/tasks'
 import { Plus, X } from 'lucide-react'
 import { Task } from '@/types'
 
 export default function NewTaskModal({ autoOpen = false }: { autoOpen?: boolean }) {
+  const router = useRouter()
   const [open, setOpen] = useState(autoOpen)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
@@ -17,6 +19,7 @@ export default function NewTaskModal({ autoOpen = false }: { autoOpen?: boolean 
     e.preventDefault()
     setLoading(true)
     await createTask({ ...form, notes: form.notes || null, due_date: form.due_date || null })
+    router.refresh()
     setOpen(false)
     setLoading(false)
     setForm({ title:'', notes:'', status:'today', priority:'medium', category:'personal', due_date:'' })
