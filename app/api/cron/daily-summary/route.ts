@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Resend } from 'resend'
 import { sendPushNotification } from '@/lib/push'
+import { buildTaskBuckets, bucketTitles } from '@/lib/notifications/digest'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -15,7 +16,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  // Service role: el cron no tiene sesión de usuario, debe bypassar RLS
+  const supabase = createAdminClient()
 
   // Obtener todos los usuarios con notificaciones activas
   const { data: settings } = await supabase
@@ -48,14 +50,16 @@ export async function GET(req: Request) {
     const habitsDone = habits?.filter(h => doneIds.has(h.id)).length ?? 0
     const habitsTotal = habits?.length ?? 0
 
-    const urgentTasks = tasks?.filter(t => {
-      if (!t.due_date) return false
-      return t.due_date <= format(new Date(Date.now() + 86400000), 'yyyy-MM-dd')
-    }) ?? []
-
+    const { overdue, today: todayTasks } = buildTaskBuckets(tasks ?? [], today)
     const nextPayment = payments?.[0]
 
-    const body = `${habitsDone}/${habitsTotal} hábitos · ${urgentTasks.length} tareas urgentes${nextPayment ? ` · ${nextPayment.name} vence pronto` : ''}`
+    // --- Cuerpo del push (texto multilínea) ---
+    const lines: string[] = [`${habitsDone}/${habitsTotal} hábitos`]
+    if (overdue.length) lines.push(`🔴 Vencidas (${overdue.length}): ${bucketTitles(overdue)}`)
+    if (todayTasks.length) lines.push(`🟡 Hoy (${todayTasks.length}): ${bucketTitles(todayTasks)}`)
+    if (!overdue.length && !todayTasks.length) lines.push('✅ Sin tareas para hoy')
+    if (nextPayment) lines.push(`💳 ${nextPayment.name} vence pronto`)
+    const body = lines.join('\n')
 
     // Push
     if (s.notif_push && s.push_subscription) {
@@ -76,6 +80,16 @@ export async function GET(req: Request) {
     if (s.notif_email) {
       const { data: { user } } = await supabase.auth.admin.getUserById(s.user_id)
       if (user?.email) {
+        const taskBlock =
+          overdue.length || todayTasks.length
+            ? `
+              ${overdue.length ? `<p style="margin:0 0 4px;color:#DC2626;font-size:14px;font-weight:600">🔴 Vencidas (${overdue.length})</p>
+              <ul style="margin:0 0 12px;padding-left:18px;color:#7F1D1D;font-size:13px">${overdue.slice(0, 4).map(t => `<li>${t.title}</li>`).join('')}${overdue.length > 4 ? `<li>+${overdue.length - 4} más</li>` : ''}</ul>` : ''}
+              ${todayTasks.length ? `<p style="margin:0 0 4px;color:#B45309;font-size:14px;font-weight:600">🟡 Para hoy (${todayTasks.length})</p>
+              <ul style="margin:0 0 4px;padding-left:18px;color:#92400E;font-size:13px">${todayTasks.slice(0, 4).map(t => `<li>${t.title}</li>`).join('')}${todayTasks.length > 4 ? `<li>+${todayTasks.length - 4} más</li>` : ''}</ul>` : ''}
+            `
+            : `<p style="margin:0;color:#059669;font-size:14px">✅ Sin tareas para hoy</p>`
+
         await resend.emails.send({
           from: 'Mi Centro <resumen@tudominio.com>',
           to: user.email,
@@ -85,9 +99,9 @@ export async function GET(req: Request) {
               <h2 style="color:#1D9E75;margin-bottom:8px">Buenos días</h2>
               <p style="color:#374151;margin-bottom:20px">${todayLabel}</p>
               <div style="background:#f9fafb;border-radius:12px;padding:16px;margin-bottom:16px">
-                <p style="margin:0;font-size:15px;color:#111827">${body}</p>
+                <p style="margin:0 0 12px;font-size:15px;color:#111827">${habitsDone}/${habitsTotal} hábitos${nextPayment ? ` · ${nextPayment.name} vence pronto` : ''}</p>
+                ${taskBlock}
               </div>
-              ${urgentTasks.length ? `<p style="color:#B45309;font-size:13px">Tareas urgentes: ${urgentTasks.map(t => t.title).join(', ')}</p>` : ''}
               <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" style="display:inline-block;background:#1D9E75;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;margin-top:12px">Ver dashboard</a>
             </div>
           `,

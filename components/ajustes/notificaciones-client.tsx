@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { updateSettings, savePushSubscription } from '@/lib/actions/settings'
+import { updateSettings, savePushSubscription, sendTestPush } from '@/lib/actions/settings'
 import { UserSettings } from '@/types'
 import { Bell, Mail, Check, Smartphone } from 'lucide-react'
 
@@ -37,7 +37,15 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
   const [s, setS] = useState(initialSettings)
   const [saved, setSaved] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
+  const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
   const [pending, startTransition] = useTransition()
+
+  async function testPush() {
+    setTestStatus('sending')
+    const res = await sendTestPush()
+    setTestStatus(res.ok ? 'ok' : 'error')
+    setTimeout(() => setTestStatus('idle'), 3000)
+  }
 
   function update(patch: Partial<UserSettings>) {
     setS(p => ({ ...p, ...patch }))
@@ -142,6 +150,16 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
               sub="X días antes (configurado por pago)"
               right={<Toggle on={true} onChange={() => {}} />}
             />
+            <button
+              onClick={testPush}
+              disabled={testStatus === 'sending'}
+              className="w-full mt-3 text-sm border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-gray-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {testStatus === 'sending' ? 'Enviando...'
+                : testStatus === 'ok' ? <><Check className="w-4 h-4 text-teal-600" /> Enviada — revisá la notificación</>
+                : testStatus === 'error' ? 'Error al enviar (revisá permisos)'
+                : <><Bell className="w-4 h-4" /> Probar push</>}
+            </button>
           </>
         )}
       </div>
