@@ -38,13 +38,20 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
   const [saved, setSaved] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
   const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
+  const [testError, setTestError] = useState('')
   const [pending, startTransition] = useTransition()
 
   async function testPush() {
     setTestStatus('sending')
+    setTestError('')
     const res = await sendTestPush()
-    setTestStatus(res.ok ? 'ok' : 'error')
-    setTimeout(() => setTestStatus('idle'), 3000)
+    if (res.ok) {
+      setTestStatus('ok')
+      setTimeout(() => setTestStatus('idle'), 4000)
+    } else {
+      setTestStatus('error')
+      setTestError(res.error ?? 'error desconocido')
+    }
   }
 
   function update(patch: Partial<UserSettings>) {
@@ -157,9 +164,12 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
             >
               {testStatus === 'sending' ? 'Enviando...'
                 : testStatus === 'ok' ? <><Check className="w-4 h-4 text-teal-600" /> Enviada — revisá la notificación</>
-                : testStatus === 'error' ? 'Error al enviar (revisá permisos)'
+                : testStatus === 'error' ? 'Reintentar'
                 : <><Bell className="w-4 h-4" /> Probar push</>}
             </button>
+            {testStatus === 'error' && testError && (
+              <p className="mt-2 text-xs text-red-600 break-words bg-red-50 rounded-lg p-2">{testError}</p>
+            )}
           </>
         )}
       </div>

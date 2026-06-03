@@ -59,7 +59,12 @@ export async function savePushSubscription(subscription: string) {
 export async function sendTestPush(): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'no-auth' }
+  if (!user) return { ok: false, error: 'Sin sesión' }
+
+  // Validar config VAPID server-side
+  if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+    return { ok: false, error: 'Faltan VAPID keys en el server' }
+  }
 
   const { data } = await supabase
     .from('user_settings')
@@ -67,7 +72,9 @@ export async function sendTestPush(): Promise<{ ok: boolean; error?: string }> {
     .eq('user_id', user.id)
     .single()
 
-  if (!data?.push_subscription) return { ok: false, error: 'no-subscription' }
+  if (!data?.push_subscription) {
+    return { ok: false, error: 'No hay suscripción guardada — reactivá el push' }
+  }
 
   try {
     const res = await sendPushNotification(JSON.parse(data.push_subscription), {
@@ -75,8 +82,15 @@ export async function sendTestPush(): Promise<{ ok: boolean; error?: string }> {
       body: 'Si ves esto, las notificaciones funcionan.',
       url: '/dashboard',
     })
-    return res.ok ? { ok: true } : { ok: false, error: 'send-failed' }
-  } catch {
-    return { ok: false, error: 'send-failed' }
+    if (res.ok) return { ok: true }
+    // Surface web-push detail (statusCode + body) para diagnóstico
+    const err = res.err as { statusCode?: number; body?: string; message?: string } | undefined
+    const detail = err?.statusCode
+      ? `HTTP ${err.statusCode}: ${(err.body || err.message || '').toString().slice(0, 120)}`
+      : (err?.message || 'fallo desconocido').toString().slice(0, 140)
+    return { ok: false, error: detail }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { ok: false, error: `excepción: ${msg.slice(0, 140)}` }
   }
 }
