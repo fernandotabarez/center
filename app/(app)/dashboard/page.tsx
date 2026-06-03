@@ -6,9 +6,9 @@ import { format, parseISO, isToday, isTomorrow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import HabitCheckList from '@/components/dashboard/habit-check-list'
 import TaskUrgentList from '@/components/dashboard/task-urgent-list'
-import KanbanMini from '@/components/dashboard/kanban-mini'
+import WeeklyObjectivesList from '@/components/dashboard/weekly-objectives-list'
 import PaymentList from '@/components/dashboard/payment-list'
-import { Bell, Plus } from 'lucide-react'
+import { Bell, Plus, CheckCircle2, Flame, AlertTriangle, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import AddQuickModal from '@/components/dashboard/add-quick-modal'
 import { getCurrentWeekObjectives } from '@/lib/actions/goals'
@@ -65,16 +65,22 @@ export default async function DashboardPage() {
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div className="bg-white border border-gray-200 rounded-2xl flex items-stretch mb-5 divide-x divide-gray-100">
         {[
-          { label: 'hábitos hoy', value: `${doneToday}/${todayHabits.length}`, color: doneToday === todayHabits.length ? 'text-teal-600' : 'text-gray-900' },
-          { label: 'días de racha', value: String(streak), color: 'text-gray-900' },
-          { label: 'tareas urgentes', value: String(urgentTasks.length), color: urgentTasks.length > 0 ? 'text-amber-600' : 'text-gray-900' },
-          { label: 'consistencia mes', value: `${consistency}%`, color: 'text-gray-900' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white border border-gray-200 rounded-2xl p-3.5">
-            <p className="text-xs text-gray-400 mb-1">{label}</p>
-            <p className={`text-2xl font-medium ${color}`}>{value}</p>
+          {
+            label: 'hábitos',
+            value: `${doneToday}/${todayHabits.length}`,
+            Icon: CheckCircle2,
+            color: doneToday === todayHabits.length && todayHabits.length > 0 ? 'text-teal-600' : 'text-gray-400',
+          },
+          { label: 'racha', value: String(streak), Icon: Flame, color: streak > 0 ? 'text-orange-500' : 'text-gray-400' },
+          { label: 'urgentes', value: String(urgentTasks.length), Icon: AlertTriangle, color: urgentTasks.length > 0 ? 'text-amber-600' : 'text-gray-400' },
+          { label: 'consistencia', value: `${consistency}%`, Icon: TrendingUp, color: 'text-gray-400' },
+        ].map(({ label, value, Icon, color }) => (
+          <div key={label} className="flex-1 flex flex-col items-center justify-center gap-1 py-3.5 px-1">
+            <Icon className={`w-5 h-5 ${color}`} strokeWidth={2} />
+            <p className="text-lg font-semibold text-gray-900 leading-none">{value}</p>
+            <p className="text-[11px] text-gray-400 leading-none">{label}</p>
           </div>
         ))}
       </div>
@@ -102,10 +108,10 @@ export default async function DashboardPage() {
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-white border border-gray-200 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-gray-900">Kanban</h2>
-            <Link href="/tareas" className="text-xs text-gray-400 hover:text-gray-600">expandir →</Link>
+            <h2 className="text-sm font-medium text-gray-900">Metas de la semana</h2>
+            <Link href="/objetivos" className="text-xs text-gray-400 hover:text-gray-600">ver todas →</Link>
           </div>
-          <KanbanMini tasks={tasks} />
+          <WeeklyObjectivesList objectives={weeklyObjs} />
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-4">
