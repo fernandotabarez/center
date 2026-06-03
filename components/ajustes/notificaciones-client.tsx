@@ -70,16 +70,28 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
 
   async function enablePush() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Tu navegador no soporta notificaciones push. Usá Chrome o Edge.')
+      setTestStatus('error'); setTestError('Este navegador/contexto no soporta push (en iOS abrí la app desde el ícono instalado, no Safari).')
+      return
+    }
+    if (!vapidKey) {
+      setTestStatus('error'); setTestError('Falta NEXT_PUBLIC_VAPID_PUBLIC_KEY en el deploy.')
       return
     }
     setPushLoading(true)
+    setTestStatus('idle'); setTestError('')
     try {
       const perm = await Notification.requestPermission()
-      if (perm !== 'granted') { alert('Permiso denegado. Habilitalo desde la configuración del navegador.'); return }
+      if (perm !== 'granted') {
+        setTestStatus('error'); setTestError('Permiso denegado por el navegador.')
+        return
+      }
 
       const reg = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
+
+      // Limpiar suscripción previa: si tiene otra applicationServerKey, subscribe() tira InvalidStateError
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) await existing.unsubscribe()
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -89,8 +101,9 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
       await savePushSubscription(subStr)
       update({ notif_push: true, push_subscription: subStr })
     } catch (e) {
+      const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
       console.error(e)
-      alert('Error activando push. Revisá la consola.')
+      setTestStatus('error'); setTestError(`No se pudo activar: ${msg}`)
     } finally {
       setPushLoading(false)
     }
@@ -178,10 +191,11 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
                 : testStatus === 'error' ? 'Reintentar'
                 : <><Bell className="w-4 h-4" /> Probar push</>}
             </button>
-            {testStatus === 'error' && testError && (
-              <p className="mt-2 text-xs text-red-600 break-words bg-red-50 rounded-lg p-2">{testError}</p>
-            )}
           </>
+        )}
+
+        {testStatus === 'error' && testError && (
+          <p className="mt-2 text-xs text-red-600 break-words bg-red-50 rounded-lg p-2">{testError}</p>
         )}
       </div>
 
