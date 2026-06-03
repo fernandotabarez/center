@@ -40,8 +40,23 @@ export async function updateSettings(data: Partial<UserSettings>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase.from('user_settings').upsert({ ...data, user_id: user.id })
+  // push_subscription lo gestionan savePushSubscription/disablePush.
+  // Nunca lo pisamos acá: el `data` del cliente suele traerlo null y borraría la suscripción.
+  const { push_subscription, ...rest } = data
+  await supabase.from('user_settings').upsert({ ...rest, user_id: user.id })
   revalidatePath('/ajustes')
+}
+
+export async function disablePush() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.from('user_settings').upsert({
+    user_id: user.id,
+    notif_push: false,
+    push_subscription: null,
+  })
 }
 
 export async function savePushSubscription(subscription: string) {

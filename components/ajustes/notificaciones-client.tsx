@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { updateSettings, savePushSubscription, sendTestPush } from '@/lib/actions/settings'
+import { updateSettings, savePushSubscription, sendTestPush, disablePush } from '@/lib/actions/settings'
 import { UserSettings } from '@/types'
 import { Bell, Mail, Check, Smartphone } from 'lucide-react'
 
@@ -54,6 +54,16 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
     }
   }
 
+  async function disable() {
+    update({ notif_push: false, push_subscription: null })
+    setTestStatus('idle')
+    await disablePush()
+  }
+
+  // Push realmente operativo = flag activo Y suscripción guardada.
+  // Si notif_push quedó true sin suscripción, hay que re-activar.
+  const hasPush = s.notif_push && !!s.push_subscription
+
   function update(patch: Partial<UserSettings>) {
     setS(p => ({ ...p, ...patch }))
   }
@@ -75,8 +85,9 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
-      await savePushSubscription(JSON.stringify(sub))
-      update({ notif_push: true })
+      const subStr = JSON.stringify(sub)
+      await savePushSubscription(subStr)
+      update({ notif_push: true, push_subscription: subStr })
     } catch (e) {
       console.error(e)
       alert('Error activando push. Revisá la consola.')
@@ -120,10 +131,10 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
         <Row
           icon={<Smartphone className="w-4 h-4" />}
           title="Notificaciones push"
-          sub={s.notif_push ? 'activas en este dispositivo' : 'requiere permiso del navegador'}
+          sub={hasPush ? 'activas en este dispositivo' : s.notif_push ? 'sin suscripción — reactivá' : 'requiere permiso del navegador'}
           right={
-            s.notif_push
-              ? <Toggle on={true} onChange={v => update({ notif_push: v })} />
+            hasPush
+              ? <Toggle on={true} onChange={() => disable()} />
               : <button onClick={enablePush} disabled={pushLoading}
                   className="text-xs bg-teal-50 text-teal-700 hover:bg-teal-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50">
                   {pushLoading ? 'activando...' : 'activar'}
@@ -131,7 +142,7 @@ export default function NotificacionesClient({ initialSettings, vapidKey }: {
           }
         />
 
-        {s.notif_push && (
+        {hasPush && (
           <>
             <Row
               icon={<Bell className="w-4 h-4" />}

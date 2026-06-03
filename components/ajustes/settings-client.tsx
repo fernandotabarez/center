@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { updateSettings, savePushSubscription } from '@/lib/actions/settings'
+import { updateSettings, savePushSubscription, disablePush } from '@/lib/actions/settings'
 import { UserSettings } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -46,14 +46,23 @@ export default function SettingsClient({ initialSettings, email, vapidKey }: {
     if (perm !== 'granted') { alert('Permiso denegado.'); return }
 
     const reg = await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.ready
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: vapidKey,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey),
     })
-    await savePushSubscription(JSON.stringify(sub))
-    update({ notif_push: true })
+    const subStr = JSON.stringify(sub)
+    await savePushSubscription(subStr)
+    update({ notif_push: true, push_subscription: subStr })
     alert('Notificaciones push activadas.')
   }
+
+  async function disable() {
+    update({ notif_push: false, push_subscription: null })
+    await disablePush()
+  }
+
+  const hasPush = s.notif_push && !!s.push_subscription
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -109,11 +118,11 @@ export default function SettingsClient({ initialSettings, email, vapidKey }: {
             <Bell className="w-4 h-4 text-gray-500" />
             <div>
               <p className="text-sm text-gray-900">Push (navegador)</p>
-              <p className="text-xs text-gray-400">{s.notif_push ? 'activo' : 'desactivado'}</p>
+              <p className="text-xs text-gray-400">{hasPush ? 'activo' : s.notif_push ? 'sin suscripción — reactivá' : 'desactivado'}</p>
             </div>
           </div>
-          {s.notif_push
-            ? <Toggle on={true} onChange={() => update({ notif_push: false })} />
+          {hasPush
+            ? <Toggle on={true} onChange={() => disable()} />
             : <button onClick={enablePush} className="text-xs bg-teal-50 text-teal-700 px-3 py-1 rounded-full hover:bg-teal-100 transition-colors">activar</button>
           }
         </div>
@@ -140,4 +149,11 @@ export default function SettingsClient({ initialSettings, email, vapidKey }: {
       </button>
     </div>
   )
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return Uint8Array.from(Array.from(rawData).map(c => c.charCodeAt(0)))
 }
